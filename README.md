@@ -29,6 +29,7 @@
         <li>Uso de WorkerManager y Notifications</li>
         <li>Implementación de idioma Inglés y Español</li>
         <li>Utilización de diálogos (Snackbar) para mostrar mensajes al usuario</li>
+        <li>Paginación</li>
 </ul>
 <br>
 
