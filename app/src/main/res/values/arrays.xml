@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="card_types">
+        <item>Colorless</item>
+        <item>Darkness</item>
+        <item>Dragon</item>
+        <item>Fairy</item>
+        <item>Fighting</item>
+        <item>Fire</item>
+        <item>Grass</item>
+        <item>Lightning</item>
+        <item>Metal</item>
+        <item>Psychic</item>
+        <item>Water</item>
+    </string-array>
+    <string-array name="card_rarities">
+        <item>ACE SPEC Rare</item>
+        <item>Amazing Rare</item>
+        <item>Classic Collection</item>
+        <item>Common</item>
+        <item>Double Rare</item>
+        <item>Hyper Rare</item>
+        <item>Illustration Rare</item>
+        <item>LEGEND</item>
+        <item>Promo</item>
+        <item>Radiant Rare</item>
+        <item>Rare</item>
+        <item>Rare ACE</item>
+        <item>Rare BREAK</item>
+        <item>Rare Holo</item>
+        <item>Rare Holo EX</item>
+        <item>Rare Holo GX</item>
+        <item>Rare Holo LV.X</item>
+        <item>Rare Holo Star</item>
+        <item>Rare Holo V</item>
+        <item>Rare Holo VMAX</item>
+        <item>Rare Holo VSTAR</item>
+        <item>Rare Prime</item>
+        <item>Rare Prism Star</item>
+        <item>Rare Rainbow</item>
+        <item>Rare Secret</item>
+        <item>Rare Shining</item>
+        <item>Rare Shiny</item>
+        <item>Rare Shiny GX</item>
+        <item>Rare Ultra</item>
+        <item>Shiny Rare</item>
+        <item>Shiny Ultra Rare</item>
+        <item>Special Illustration Rare</item>
+        <item>Trainer Gallery Rare Holo</item>
+        <item>Ultra Rare</item>
+        <item>Uncommon</item>
+    </string-array>
+    <string-array name="card_supertypes">
+        <item>Pokémon</item>
+        <item>Trainer</item>
+        <item>Energy</item>
+    </string-array>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">PokemonTCG</string>
+    <string name="card_image_desc">Imagen de la carta</string>
+</resources>
