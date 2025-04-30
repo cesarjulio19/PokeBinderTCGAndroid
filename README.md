@@ -32,3 +32,5 @@
 </ul>
 <br>
 
+Vídeo del checkpoint del proyecto : [Checkpoint-PokéBinder TCG](https://youtu.be/stX-fsP2Mo8)
+
