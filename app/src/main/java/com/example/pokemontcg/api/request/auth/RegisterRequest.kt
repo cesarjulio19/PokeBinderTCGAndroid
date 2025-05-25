@@ -1,3 +1,4 @@
 package com.example.pokemontcg.api.request.auth
 
-data class RegisterRequest()
+// request para registro
+data class RegisterRequest(val username: String, val email: String, val password: String)

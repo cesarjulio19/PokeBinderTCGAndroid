@@ -9,7 +9,7 @@ import com.example.pokemontcg.local.dao.SetDao
 import com.example.pokemontcg.local.entity.CardEntity
 import com.example.pokemontcg.local.entity.SetEntity
 
-@Database(entities = [CardEntity::class, SetEntity::class], version = 7)
+@Database(entities = [CardEntity::class, SetEntity::class], version = 8)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
     abstract fun setDao(): SetDao

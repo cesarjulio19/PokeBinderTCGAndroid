@@ -7,6 +7,7 @@ data class CardUpdateRequest(
 data class CardUpdateData(
     val name: String,
     val number: Int,
+    val image: Int? = null,
     val type: String?,
     val rarity: String?,
     val superType: String?,

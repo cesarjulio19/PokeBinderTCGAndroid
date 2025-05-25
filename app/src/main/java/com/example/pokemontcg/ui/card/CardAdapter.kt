@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
+import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -17,7 +18,7 @@ import com.example.pokemontcg.dto.CardDto
 class CardAdapter(
     val onEdit: (CardDto) -> Unit,
     val onDelete: (CardDto) -> Unit
-) : ListAdapter<CardDto, CardAdapter.CardViewHolder>(CardDiff) {
+) : PagingDataAdapter<CardDto, CardAdapter.CardViewHolder>(CardDiff) {
 
     object CardDiff : DiffUtil.ItemCallback<CardDto>() {
         override fun areItemsTheSame(oldItem: CardDto, newItem: CardDto) = oldItem.id == newItem.id
@@ -32,17 +33,23 @@ class CardAdapter(
         fun bind(card: CardDto) {
             val glide = Glide.with(img.context)
 
-            if (!card.illustration.isNullOrEmpty()) {
+            if (!card.illustration.isNullOrEmpty() && card.image.isNullOrEmpty()) {
 
                 glide
                     .load(card.illustration)
                     .error(R.drawable.pokeball)
                     .into(img)
-            } else {
+            } else if(!card.image.isNullOrEmpty()){
 
+                glide
+                    .load(card.image)
+                    .error(R.drawable.pokeball)
+                    .into(img)
+            }else if(card.image.isNullOrEmpty() && card.illustration.isNullOrEmpty()){
                 glide
                     .load(R.drawable.pokeball)
                     .into(img)
+
             }
 
             editBtn.setOnClickListener { onEdit(card) }
@@ -56,6 +63,6 @@ class CardAdapter(
     }
 
     override fun onBindViewHolder(holder: CardViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        getItem(position)?.let { holder.bind(it) }
     }
 }

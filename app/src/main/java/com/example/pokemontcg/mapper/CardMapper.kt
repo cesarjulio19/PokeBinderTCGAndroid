@@ -33,4 +33,16 @@ object CardMapper {
             setId = entity.setId
         )
     }
+
+    fun fromResponseToDto(response: CardData): CardDto = CardDto(
+        id         = response.id,
+        name       = response.attributes.name,
+        number     = response.attributes.number,
+        type       = response.attributes.type,
+        rarity     = response.attributes.rarity,
+        superType  = response.attributes.superType,
+        illustration = response.attributes.illustration,
+        image      = response.attributes.image?.data?.attributes?.url,
+        setId      = response.attributes.set.data!!.id
+    )
 }

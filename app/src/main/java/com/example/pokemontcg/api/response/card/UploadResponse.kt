@@ -1,4 +1,7 @@
 package com.example.pokemontcg.api.response.card
 
-class UploadResponse {
-}
+data class UploadResponse(
+    val id: Int,
+    val url: String,
+    val name: String,
+)

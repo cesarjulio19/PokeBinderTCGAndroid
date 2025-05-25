@@ -7,7 +7,7 @@ data class CardCreateRequest(
 data class CardCreateData(
     val name: String,
     val number: Int,
-    val image: String?,
+    val image: Int? = null,
     val type: String?,
     val rarity: String?,
     val superType: String?,

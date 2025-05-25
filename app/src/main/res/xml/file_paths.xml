@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
-</PreferenceScreen>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- para que FileProvider pueda servir cualquier archivo de cacheDir -->
+    <cache-path
+        name="cache"
+        path="." />
+</paths>

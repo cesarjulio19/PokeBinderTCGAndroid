@@ -1,6 +1,12 @@
 package com.example.pokemontcg.ui.card
 
+import android.Manifest
 import android.app.AlertDialog
+import android.content.ContentResolver
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -10,13 +16,20 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Spinner
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.pokemontcg.R
 import com.example.pokemontcg.api.request.card.CardCreateData
 import com.example.pokemontcg.api.request.card.CardCreateRequest
@@ -26,11 +39,16 @@ import com.example.pokemontcg.dto.CardDto
 import com.example.pokemontcg.local.entity.SetEntity
 import com.example.pokemontcg.ui.set.SetViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
+import java.io.File
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
 
 @AndroidEntryPoint
 class CardsFragment : Fragment() {
@@ -45,6 +63,45 @@ class CardsFragment : Fragment() {
     private val setViewModel: SetViewModel by viewModels()
     private val cardViewModel: CardViewModel by viewModels()
 
+    private var dialogImageView: ImageView? = null
+
+    //Guarda la Uri de la imagen seleccionada
+    private var selectedImageUri: Uri? = null
+
+    // Registra los lanzadores en el cuerpo de la clase
+    private val pickImage = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { loadImagePreview(it) }
+    }
+
+    // Define un launcher para pedir el permiso
+    private val requestCameraPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            // si te autorizaron, relanza la acción de cámara
+            launchCamera()
+        } else {
+            Toast.makeText(requireContext(),
+                "Sin permiso de cámara no puedes tomar fotos",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+
+
+    // Lanzador para capturar foto en un fichero
+    private val takePhotoLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success && selectedImageUri != null) {
+            loadImagePreview(selectedImageUri!!)
+        }
+    }
+
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -53,12 +110,12 @@ class CardsFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        (activity as AppCompatActivity)
-            .supportActionBar
-            ?.title = "Cartas"
+        // 1️⃣ Título
+        (activity as AppCompatActivity).supportActionBar?.title = "Cartas"
 
-
+        // Inicializa el PagingDataAdapter (hereda de PagingDataAdapter<CardDto, VH>)
         cardAdapter = CardAdapter(
             onEdit = { card -> showCardDialog(isEditing = true, existing = card) },
             onDelete = { card ->
@@ -72,116 +129,117 @@ class CardsFragment : Fragment() {
                     .show()
             }
         )
+
+        //  Configura el RecyclerView con footer de carga/reintento
         recyclerView = view.findViewById(R.id.recycler_cards)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = cardAdapter
-
-
-        Log.i("CardRepo", "CardsFragment onViewCreated")
-
-
-        spinner = view.findViewById(R.id.spinner_sets)
-        setViewModel.refresh()
-
-        setAdapter = SetSpinnerAdapter(
-            requireContext(),
-            ArrayList<SetEntity>()
+        recyclerView.adapter = cardAdapter.withLoadStateFooter(
+            footer = CardLoadStateAdapter { cardAdapter.retry() }
         )
+
+        //  Spinner de sets
+        spinner = view.findViewById(R.id.spinner_sets)
+        setAdapter = SetSpinnerAdapter(requireContext())
         spinner.adapter = setAdapter
+
+        // Observa la lista de sets desde el ViewModel
         setViewModel.sets
             .onEach { list ->
-                sets = list
+                sets = list.toList() // mantiene copia mutable
                 setAdapter.updateItems(sets)
+                if (sets.isNotEmpty()) spinner.setSelection(0, false)
             }
             .launchIn(viewLifecycleOwner.lifecycleScope)
 
+        // Pre-carga inicial: carga cartas del primer set
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
-
-            val list = setViewModel.sets.first()
-            if (list.isNotEmpty()) {
-
-                spinner.setSelection(0, /* animate = */ false)
-
-                // Guarda el id y lanza el sync diferencial
-                val first = list[0]
-                selectedSetId = first.id
-                cardViewModel.syncCardsBySet(first.id)
+            setViewModel.sets.firstOrNull()?.firstOrNull()?.let { firstSet ->
+                selectedSetId = firstSet.id
+                cardViewModel.onSetSelected(firstSet.id)
             }
         }
 
-
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val set = sets[position]
-                selectedSetId = set.id
-                Log.i("CardRepo", "Set seleccionado: ${set.name} (id=$selectedSetId)")
-
-
-                viewLifecycleOwner.lifecycleScope.launch {
-
-                    cardViewModel.syncCardsBySet(set.id)
+        lifecycleScope.launch {
+            cardViewModel.pagedCards
+                .collectLatest { pagingData ->
+                    cardAdapter.submitData(pagingData)
                 }
+        }
+
+        // Cuando el usuario cambia de set, vuelve a cargar paging source
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
+                val setId = sets[pos].id
+                selectedSetId = setId
+                cardViewModel.onSetSelected(setId)
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-
-        cardViewModel.filteredCards.onEach { list ->
-            Log.i("CardRepo", "filteredCards emitió ${list.size} cartas")
-            cardAdapter.submitList(list)
-        }.launchIn(viewLifecycleOwner.lifecycleScope)
-
-
-        view.findViewById<Button>(R.id.btn_new_card).setOnClickListener {
-            showCardDialog(isEditing = false)
-        }
-
-        // Botones
-
-        view.findViewById<Button>(R.id.btn_new_set).setOnClickListener {
-            showSetDialog(isEditing = false)
-        }
-
-        view.findViewById<Button>(R.id.btn_edit_set).setOnClickListener {
-            selectedSetId?.let {
-                val setName = sets.first { s -> s.id == it }.name
-                showSetDialog(isEditing = true, setId = it, setName = setName)
+        /* Observa el flujo de PagingData y pásaselo al adapter
+        cardViewModel.pagedCards
+            .onEach { pagingData ->
+                cardAdapter.submitData(lifecycle, pagingData)
             }
-        }
+            .launchIn(viewLifecycleOwner.lifecycleScope) */
 
-        view.findViewById<Button>(R.id.btn_delete_set).setOnClickListener {
-            selectedSetId?.let { id ->
-                val dialog = AlertDialog.Builder(requireContext())
-                    .setTitle("Eliminar set $id")
-                    .setMessage("¿Estás seguro de que deseas eliminar este set?")
-                    .setPositiveButton("Sí") { _, _ ->
-                        setViewModel.deleteSet(id)
-                    }
-                    .setNegativeButton("Cancelar", null)
-                    .create()
+        // Botones de set (crear, editar, borrar)
+        view.findViewById<Button>(R.id.btn_new_set)
+            .setOnClickListener { showSetDialog(isEditing = false) }
 
-                dialog.show()
-
+        view.findViewById<Button>(R.id.btn_edit_set)
+            .setOnClickListener {
+                selectedSetId?.let { id ->
+                    // obtenemos el nombre del set del array local 'sets'
+                    val name = sets.first { it.id == id }.name
+                    showSetDialog(isEditing = true, setId = id, setName = name)
+                }
             }
-        }
 
+        view.findViewById<Button>(R.id.btn_delete_set)
+            .setOnClickListener {
+                selectedSetId?.let { id ->
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Eliminar set $id")
+                        .setMessage("¿Estás seguro de que deseas eliminar este set?")
+                        .setPositiveButton("Sí") { _, _ ->
+                            setViewModel.deleteSet(id)
+                        }
+                        .setNegativeButton("Cancelar", null)
+                        .show()
+                }
+            }
 
+        // Botón para nueva carta
+        view.findViewById<Button>(R.id.btn_new_card)
+            .setOnClickListener { showCardDialog(isEditing = false) }
+
+        /* Al crear/editar/borrar carta, recargar la fuente de paging
         cardViewModel.isSuccess
             .onEach { success ->
                 if (success && selectedSetId != null) {
-                    // recarga sólo de Room las cartas de este set
-                    //cardViewModel.fetchCardsBySet(selectedSetId!!)
                     cardViewModel.syncCardsBySet(selectedSetId!!)
+                    cardAdapter.refresh()
+                }else if(success){
+                    cardAdapter.refresh()
+                }
+
+            }
+            .launchIn(viewLifecycleOwner.lifecycleScope)*/
+
+        // Cuando recibas el resultado de creación/edición:
+        cardViewModel.isSuccess
+            .onEach { success ->
+                if (success) {
+                    // recarga la fuente paginada desde página 1
+                    cardAdapter.refresh()
                 }
             }
             .launchIn(viewLifecycleOwner.lifecycleScope)
-
-
-
-
-
-
     }
+
+
+
 
 
 
@@ -208,12 +266,35 @@ class CardsFragment : Fragment() {
 
     private fun showCardDialog(isEditing: Boolean, existing: CardDto? = null) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_card_form, null)
+        val btnGallery = dialogView.findViewById<Button>(R.id.btn_pick_image)
+        val btnCamera  = dialogView.findViewById<Button>(R.id.btn_take_photo)
+        val imgPreview = dialogView.findViewById<ImageView>(R.id.iv_image_preview)
+        dialogImageView = imgPreview
+        selectedImageUri = null
+        imgPreview.visibility = View.GONE
 
         val etName         = dialogView.findViewById<EditText>(R.id.et_name)
         val etNumber       = dialogView.findViewById<EditText>(R.id.et_number)
         val spinnerType    = dialogView.findViewById<Spinner>(R.id.spinner_type)
         val spinnerRarity  = dialogView.findViewById<Spinner>(R.id.spinner_rarity)
         val spinnerSuper   = dialogView.findViewById<Spinner>(R.id.spinner_superType)
+
+        btnGallery.setOnClickListener {
+            pickImage.launch("image/*")
+        }
+
+        btnCamera.setOnClickListener {
+            //  Comprueba permiso
+            if (ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                launchCamera()
+            } else {
+                requestCameraPermission.launch(Manifest.permission.CAMERA)
+            }
+        }
 
         // 1) Configurar adapters de spinner
         ArrayAdapter.createFromResource(requireContext(),
@@ -233,6 +314,13 @@ class CardsFragment : Fragment() {
 
         // 2) Si es edición, precarga valores
         if (isEditing && existing != null) {
+            val imageUrl = existing.image ?: existing.illustration
+            if (imageUrl != null) {
+                imgPreview.visibility = View.VISIBLE
+                Glide.with(this).load(imageUrl).into(imgPreview)
+                // guardamos esa Uri como “seleccionada”, para que no intente subir null
+                selectedImageUri = Uri.parse(imageUrl)
+            }
             etName.setText(existing.name)
             etNumber.setText(existing.number.toString())
             spinnerType.setSelection(
@@ -244,6 +332,8 @@ class CardsFragment : Fragment() {
             spinnerSuper.setSelection(
                 (spinnerSuper.adapter as ArrayAdapter<String>).getPosition(existing.superType)
             )
+        }else{
+
         }
 
         AlertDialog.Builder(requireContext())
@@ -255,8 +345,21 @@ class CardsFragment : Fragment() {
                 val type  = spinnerType.selectedItem as String
                 val rar   = spinnerRarity.selectedItem as String
                 val sup   = spinnerSuper.selectedItem as String
-
                 val setId = selectedSetId ?: return@setPositiveButton
+                val localImagePart = selectedImageUri
+                    // sólo si el URI es local
+                    ?.takeIf { uri ->
+                        val scheme = uri.scheme?.lowercase()
+                        scheme == ContentResolver.SCHEME_CONTENT || scheme == ContentResolver.SCHEME_FILE
+                    }
+                    ?.let { uri ->
+                        try {
+                            uriToImagePart(uri)
+                        } catch (e: Exception) {
+                            Log.w("CardsFragment", "No pude empaquetar la imagen: $uri", e)
+                            null
+                        }
+                    }
 
                 if (isEditing && existing != null) {
                     // Prepara request de actualización
@@ -267,10 +370,15 @@ class CardsFragment : Fragment() {
                             type = type,
                             rarity = rar,
                             superType = sup,
-                            set = setId
+                            set = setId,
+                            image = null
                         )
                     )
-                    cardViewModel.updateCard(existing.id, req)
+                    // Convertimos la URI a MultipartBody.Part si existe
+
+
+                    cardViewModel.updateCard(existing.id, req, localImagePart)
+
                 } else {
                     // Request de creación
                     val req = CardCreateRequest(
@@ -281,13 +389,78 @@ class CardsFragment : Fragment() {
                             image = null,
                             rarity = rar,
                             superType = sup,
-                            set = setId
+                            set = setId,
+
                         )
                     )
-                    cardViewModel.createCard(req)
+                    // Convertimos la URI a MultipartBody.Part si existe
+
+                    cardViewModel.createCard(req, localImagePart)
                 }
+
             }
             .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+    private fun loadImagePreview(uri: Uri) {
+        selectedImageUri = uri
+        dialogImageView?.apply {
+            visibility = View.VISIBLE
+            Glide.with(this)
+                .load(uri)
+                .into(this)
+        }
+
+    }
+
+    /** Guarda el Bitmap en cacheDir y devuelve su Uri: */
+    private fun saveBitmapToCacheAndGetUri(bmp: Bitmap): Uri {
+        val file = File(requireContext().cacheDir, "tmp_image_${System.currentTimeMillis()}.jpg")
+        file.outputStream().use { out -> bmp.compress(Bitmap.CompressFormat.JPEG, 90, out) }
+        return FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            file
+        )
+    }
+
+    /**
+     * Lee el contenido del URI y crea un MultipartBody.Part con clave "files"
+     */
+    private fun uriToImagePart(uri: Uri): MultipartBody.Part? {
+        // sólo content/file
+        if (uri.scheme !in listOf(ContentResolver.SCHEME_CONTENT, ContentResolver.SCHEME_FILE)) return null
+
+        val cr = requireContext().contentResolver
+        val mime = cr.getType(uri) ?: return null
+        val input = cr.openInputStream(uri) ?: return null
+
+        val file = File(requireContext().cacheDir, "upload_${System.currentTimeMillis()}")
+        file.outputStream().use { out -> input.copyTo(out) }
+
+        val requestBody = file.asRequestBody(mime.toMediaTypeOrNull())
+        return MultipartBody.Part.createFormData("files", file.name, requestBody)
+    }
+
+    /** Se encarga de crear el fichero, URI, dar permisos y lanzar cámara */
+    private fun launchCamera() {
+        val file = File(requireContext().cacheDir,
+            "tmp_image_${System.currentTimeMillis()}.jpg")
+        selectedImageUri = FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            file
+        )
+
+        // Dale permiso a cualquier app de cámara (o al paquete específico) para escribir ahí:
+        requireContext().grantUriPermission(
+            "com.android.camera2",             // o null para todas
+            selectedImageUri,
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        )
+
+        // Lanza la cámara; rellenará nuestro currentPhotoUri
+        takePhotoLauncher.launch(selectedImageUri)
     }
 }

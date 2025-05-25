@@ -1,5 +1,6 @@
 package com.example.pokemontcg.local.dao
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -39,4 +40,12 @@ interface CardDao {
 
     @Delete
     suspend fun deleteCards(cards: List<CardEntity>)
+
+    @Query("""
+  SELECT * 
+    FROM cards 
+   WHERE setId = :setId 
+ORDER BY id DESC
+""")
+    fun pagingSourceBySet(setId: Int): PagingSource<Int, CardEntity>
 }

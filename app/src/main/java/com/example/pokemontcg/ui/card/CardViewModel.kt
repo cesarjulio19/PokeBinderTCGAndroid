@@ -8,8 +8,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.example.pokemontcg.api.request.card.CardCreateData
 import com.example.pokemontcg.api.request.card.CardCreateRequest
+import com.example.pokemontcg.api.request.card.CardUpdateData
 import com.example.pokemontcg.api.request.card.CardUpdateRequest
+import okhttp3.MultipartBody
 
 
 @HiltViewModel
@@ -29,22 +34,24 @@ class CardViewModel @Inject constructor(
     private val _filteredCards = MutableStateFlow<List<CardDto>>(emptyList())
     val filteredCards: StateFlow<List<CardDto>> = _filteredCards
 
-    fun syncFromApi() {
-        viewModelScope.launch {
-            try {
-                repository.syncCardsFromApi()
-            } catch (e: Exception) {
-                // log o manejo de error opcional
-            }
+    private val _setId = MutableStateFlow<Int?>(null)
+
+    // este flujo emitirá los PagingData tal y como los cargue el API
+    val pagedCards: Flow<PagingData<CardDto>> = _setId
+        .filterNotNull()
+        .flatMapLatest { setId ->
+            repository.getPagedCardsBySetApi(setId)
         }
+        .cachedIn(viewModelScope)
+
+    //Llama desde el Fragmento cuando el usuario elija un set.
+    fun onSetSelected(setId: Int) {
+        _setId.value = setId
+        // si quieres sincronizar en background a Room:
+        viewModelScope.launch { repository.syncCardsBySet(setId) }
     }
 
-    fun fetchCardById(id: Int) {
-        viewModelScope.launch {
-            val card = repository.getCardById(id)
-            _selectedCard.value = card
-        }
-    }
+
 
     fun fetchCardsBySet(setId: Int) {
         viewModelScope.launch {
@@ -66,17 +73,17 @@ class CardViewModel @Inject constructor(
         }
     }
 
-    fun createCard(request: CardCreateRequest) {
-        viewModelScope.launch {
-            _isSuccess.emit(repository.createCard(request))
-        }
-    }
 
-    fun updateCard(id: Int, request: CardUpdateRequest) {
+
+    fun createCard(request: CardCreateRequest, imagePart: MultipartBody.Part?) =
         viewModelScope.launch {
-            _isSuccess.emit(repository.updateCard(id, request))
+            _isSuccess.emit(repository.createCardWithImage(request, imagePart))
         }
-    }
+
+    fun updateCard(id: Int, request: CardUpdateRequest, imagePart: MultipartBody.Part?) =
+        viewModelScope.launch {
+            _isSuccess.emit(repository.updateCardWithImage(id, request, imagePart))
+        }
 
     fun deleteCard(id: Int) {
         viewModelScope.launch {

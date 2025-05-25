@@ -1,14 +1,22 @@
 package com.example.pokemontcg.ui.card
 
 import android.util.Log
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import com.example.pokemontcg.api.StrapiApiService
+import com.example.pokemontcg.api.request.card.CardCreateData
 import com.example.pokemontcg.api.request.card.CardCreateRequest
+import com.example.pokemontcg.api.request.card.CardUpdateData
 import com.example.pokemontcg.api.request.card.CardUpdateRequest
 import com.example.pokemontcg.dto.CardDto
 import com.example.pokemontcg.local.dao.CardDao
+import com.example.pokemontcg.local.entity.CardEntity
 import com.example.pokemontcg.mapper.CardMapper
+import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import okhttp3.MultipartBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -139,6 +147,90 @@ class CardRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.w("CardRepo", "Sin red, uso caché Room para set $setId", e)
+        }
+    }
+
+    fun getPagedCardsBySetApi(
+        setId: Int,
+        pageSize: Int = 25
+    ): Flow<PagingData<CardDto>> {
+        return Pager(
+            config = PagingConfig(
+                pageSize = pageSize,
+                prefetchDistance = 5,
+                enablePlaceholders = false
+            ),
+            pagingSourceFactory = {
+                CardPagingSource(api, setId, pageSize)
+            }
+        )
+            .flow
+            .map { pagingData ->
+                pagingData.map { dto -> dto  }
+            }
+    }
+
+
+    /**
+     * Sube la imagen y luego crea la carta en Strapi y Room.
+     * @param requestBuilder construye un CardCreateRequest sin 'image' aún.
+     * @param imagePart   el MultipartBody.Part con la imagen (o null si no hay).
+     */
+    suspend fun createCardWithImage(
+        request: CardCreateRequest,
+        imagePart: MultipartBody.Part?
+    ): Boolean {
+        // 1) sube imagen primero, si existe, y recupera su id
+        val imageId: Int? = imagePart?.let { part ->
+            val resp = api.uploadImage(part)
+            if (!resp.isSuccessful || resp.body().isNullOrEmpty()) return false
+            resp.body()!![0].id
+        }
+
+        // 2) crea un nuevo CardCreateRequest con el imageId inyectado
+        val newData = request.data.copy(image = imageId)
+        val newReq = CardCreateRequest(newData)
+
+        // 3) llama al endpoint POST /cards
+        val resp = api.createCard(card = newReq)
+        return if (resp.isSuccessful) {
+            // 4) si OK, guarda en Room
+            val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
+            cardDao.insertCards(listOf(entity))
+            true
+        } else {
+            Log.e("CardRepo","Error creando carta ${resp.code()}")
+            false
+        }
+    }
+
+    suspend fun updateCardWithImage(
+        id: Int,
+        request: CardUpdateRequest,
+        imagePart: MultipartBody.Part?
+    ): Boolean {
+        // 1) sube imagen si viene nueva y saca su id
+        val imageId: Int? = imagePart?.let { part ->
+            api.uploadImage(part).let { resp ->
+                if (!resp.isSuccessful || resp.body().isNullOrEmpty()) return false
+                resp.body()!![0].id
+            }
+        }
+
+        // 2) crea un nuevo CardUpdateRequest con el imageId inyectado
+        val updatedData = request.data.copy(image = imageId)
+        val newReq = CardUpdateRequest(updatedData)
+
+        // 3) llama a Strapi
+        val resp = api.updateCard(id = id, card = newReq)
+        return if (resp.isSuccessful) {
+            // 4) si OK, guarda en Room
+            val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
+            cardDao.insertCards(listOf(entity))
+            true
+        } else {
+            Log.e("CardRepo","Error actualizando carta ${resp.code()}")
+            false
         }
     }
 }

@@ -8,32 +8,33 @@ import android.widget.TextView
 import com.example.pokemontcg.local.entity.SetEntity
 
 class SetSpinnerAdapter(
-    context: Context,
-    private var sets: List<SetEntity>
-) : ArrayAdapter<SetEntity>(context, android.R.layout.simple_spinner_item, sets) {
-    fun updateItems(newItems: List<SetEntity>) {
-        sets = newItems
-        clear()
-        addAll(newItems)
-        notifyDataSetChanged()
-    }
+    context: Context
+) : ArrayAdapter<SetEntity>(context, android.R.layout.simple_spinner_item, ArrayList()) {
+
     init {
         setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
     }
 
-    override fun getItem(position: Int): SetEntity? = sets[position]
-
-    override fun getCount(): Int = sets.size
-
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        return super.getView(position, convertView, parent).apply {
-            (this as TextView).text = sets[position].name
-        }
+    /**
+     * Actualiza todo el contenido del spinner.
+     */
+    fun updateItems(newItems: List<SetEntity>) {
+        clear()
+        addAll(newItems)
+        notifyDataSetChanged()
     }
 
+    //  Pintamos la vista “cerrada” (la que se ve cuando no has desplegado nada)
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val v = super.getView(position, convertView, parent)
+        (v as TextView).text = getItem(position)?.name ?: ""
+        return v
+    }
+
+    //  Pintamos cada fila del desplegable
     override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-        return super.getDropDownView(position, convertView, parent).apply {
-            (this as TextView).text = sets[position].name
-        }
+        val v = super.getDropDownView(position, convertView, parent)
+        (v as TextView).text = getItem(position)?.name ?: ""
+        return v
     }
 }
