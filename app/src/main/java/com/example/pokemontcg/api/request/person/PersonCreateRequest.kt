@@ -5,6 +5,6 @@ data class PersonCreateData(
     val adminRole: Boolean = false,
     val email: String,
     val username: String,
-    val image: Int? = null  // id del media en Strapi
+    val image: Int? = null
 )
 data class PersonCreateRequest(val data: PersonCreateData)

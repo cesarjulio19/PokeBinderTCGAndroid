@@ -1,7 +1,7 @@
 package com.example.pokemontcg.api.response.person
 
 data class PersonResponse(
-    val data: PersonData
+    val data: PersonData?
 )
 
 data class PersonData(
@@ -14,7 +14,7 @@ data class PersonAttributes(
     val email: String,
     val username: String,
     val image: ImageRelation?,
-    val user: UserRelation
+    val user: UserRelation?
 )
 
 
@@ -45,7 +45,7 @@ data class FormatDetail(
 
 
 data class UserRelation(
-    val data: UserData
+    val data: UserData?
 )
 
 data class UserData(

@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:gravity="center_horizontal"
     android:paddingVertical="8dp">
 
@@ -43,7 +44,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="4dp"
                 android:src="@drawable/ic_baseline_edit_24"
-                android:tint="#FFC107" />
+                app:tint="#FFC107" />
 
             <ImageButton
                 android:id="@+id/btn_delete"
@@ -52,7 +53,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="4dp"
                 android:src="@drawable/ic_baseline_delete_24"
-                android:tint="@color/design_default_color_error" />
+                app:tint="@color/design_default_color_error" />
 
         </LinearLayout>
     </FrameLayout>

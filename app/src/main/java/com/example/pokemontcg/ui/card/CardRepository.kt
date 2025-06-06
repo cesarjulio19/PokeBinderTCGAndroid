@@ -1,5 +1,6 @@
 package com.example.pokemontcg.ui.card
 
+import android.content.Context
 import android.util.Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -14,7 +15,12 @@ import com.example.pokemontcg.local.dao.CardDao
 import com.example.pokemontcg.local.entity.CardEntity
 import com.example.pokemontcg.mapper.CardMapper
 import androidx.paging.map
+import com.example.pokemontcg.ui.auth.ConnectivityUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import okhttp3.MultipartBody
 import javax.inject.Inject
@@ -23,7 +29,8 @@ import javax.inject.Singleton
 @Singleton
 class CardRepository @Inject constructor(
     private val api: StrapiApiService,
-    private val cardDao: CardDao
+    private val cardDao: CardDao,
+    @ApplicationContext private val appContext: Context
 ) {
 
     fun getAllCards(): Flow<List<CardDto>> =
@@ -105,6 +112,8 @@ class CardRepository @Inject constructor(
     }*/
 
     suspend fun syncCardsBySet(setId: Int) {
+        val conteoAntes = cardDao.getCardsBySetOnce(setId).size
+        Log.i("CardRepo", "=== FILAS EN ROOM ANTES DE SYNC: $conteoAntes para set $setId")
         try {
             // 1) Baja de Strapi sólo las cartas de este set
             val resp = api.getCardsBySetId(setId = setId)
@@ -145,8 +154,12 @@ class CardRepository @Inject constructor(
             if (toInsert.isNotEmpty() || toUpdate.isNotEmpty()) {
                 cardDao.insertCards(toInsert + toUpdate)
             }
+            val conteoDespues = cardDao.getCardsBySetOnce(setId).size
+            Log.i("CardRepo", "=== FILAS EN ROOM DESPUÉS DE SYNC: $conteoDespues para set $setId")
         } catch (e: Exception) {
             Log.w("CardRepo", "Sin red, uso caché Room para set $setId", e)
+            val conteoDespues = cardDao.getCardsBySetOnce(setId).size
+            Log.i("CardRepo", "=== FILAS EN ROOM DESPUÉS DE SYNC: $conteoDespues para set $setId")
         }
     }
 
@@ -161,13 +174,40 @@ class CardRepository @Inject constructor(
                 enablePlaceholders = false
             ),
             pagingSourceFactory = {
-                CardPagingSource(api, setId, pageSize)
+                CardPagingSource(api,cardDao, setId, pageSize)
             }
         )
             .flow
             .map { pagingData ->
-                pagingData.map { dto -> dto  }
+                pagingData
             }
+    }
+
+     fun getPagedCardsBySetRoom(setId: Int, pageSize: Int = 25): Flow<PagingData<CardDto>> {
+        Log.i("CardRepo", "Número de cartas en Room para set ")
+        return Pager(
+            config = PagingConfig(
+                pageSize = pageSize,
+                prefetchDistance = 5,
+                enablePlaceholders = false
+            ),
+            pagingSourceFactory = { cardDao.pagingSourceBySet(setId) }
+        )
+            .flow
+            .map { pagingData ->
+                // Convertimos cada CardEntity a CardDto
+                pagingData.map { entity -> CardMapper.fromEntityToDto(entity) }
+            }
+    }
+
+    fun getPagedCardsBySet(setId: Int, pageSize: Int = 25): Flow<PagingData<CardDto>> {
+        return if (ConnectivityUtils.isOnline(appContext)) {
+            // Si hay red, uso la fuente API .
+            getPagedCardsBySetApi(setId, pageSize)
+        } else {
+            // Si no hay red, directamente devuelvo el paginado de Room.
+            getPagedCardsBySetRoom(setId, pageSize)
+        }
     }
 
 

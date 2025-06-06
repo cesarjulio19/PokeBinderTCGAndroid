@@ -45,4 +45,18 @@ object CardMapper {
         image      = response.attributes.image?.data?.attributes?.url,
         setId      = response.attributes.set.data!!.id
     )
+
+    fun fromDtoToEntity(dto: CardDto): CardEntity {
+        return CardEntity(
+            id           = dto.id,
+            name         = dto.name,
+            number       = dto.number,
+            type         = dto.type,
+            rarity       = dto.rarity,
+            superType    = dto.superType,
+            illustration = dto.illustration,
+            image        = dto.image,
+            setId        = dto.setId!!
+        )
+    }
 }

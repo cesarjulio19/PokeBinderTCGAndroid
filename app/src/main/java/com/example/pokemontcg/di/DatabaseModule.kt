@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import com.example.pokemontcg.local.AppDatabase
 import com.example.pokemontcg.local.dao.CardDao
+import com.example.pokemontcg.local.dao.PersonDao
 import com.example.pokemontcg.local.dao.SetDao
+import com.example.pokemontcg.local.dao.UserDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,5 +38,15 @@ object DatabaseModule {
     @Provides
     fun provideSetDao(database: AppDatabase): SetDao {
         return database.setDao()
+    }
+
+    @Provides
+    fun providePersonDao(database: AppDatabase): PersonDao {
+        return database.personDao()
+    }
+
+    @Provides
+    fun provideUserDao(database: AppDatabase): UserDao {
+        return database.userDao()
     }
 }

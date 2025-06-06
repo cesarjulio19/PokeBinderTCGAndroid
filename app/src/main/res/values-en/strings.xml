@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PokemonTCG</string>
+    <string name="card_image_desc">Image of the card</string>
+    <string name="iniciar_sesion">Login</string>
+    <string name="registro">Register</string>
+    <string name="cartas">Cards</string>
+    <string name="idiomas">Languages</string>
+    <string name="cerrar_sesion">Sign out</string>
+    <string name="reintentar">Retry</string>
+    <string name="correo_electronico">Email</string>
+    <string name="usuario">User</string>
+    <string name="contrase_a">Password</string>
+    <string name="repite_contrase_a">Repeat password</string>
+    <string name="registrar">Register</string>
+    <string name="ya_tienes_cuenta_inicia_sesi_n">Already have an account? Sign in</string>
+    <string name="usuario_o_correo">Email</string>
+    <string name="entrar">Enter</string>
+    <string name="no_tienes_cuenta_reg_strate">Don\'t have an account? Sign up</string>
+    <string name="nueva_carta">+ NEW CARD</string>
+    <string name="nuevo_set">+ NEW SET</string>
+    <string name="editar_set">✏️ EDIT SET</string>
+    <string name="eliminar_set">🗑️ DELETE SET</string>
+    <string name="nombre">Name</string>
+    <string name="n_mero">Number</string>
+    <string name="tipo">Type</string>
+    <string name="rareza">Rarity</string>
+    <string name="supertipo">SuperType</string>
+    <string name="galer_a">Gallery</string>
+    <string name="c_mara">Camera</string>
+    <string name="menu_change_language">Do you want to change language?</string>
+    <string name="Sin_permiso_de_camara">Without camera permission you cannot take photos</string>
+    <string name="Eliminar_carta">Delete card</string>
+    <string name="Seguro_que_deseas_eliminar_carta">Are you sure you want to delete?</string>
+    <string name="Sí">Yes</string>
+    <string name="cancelar">Cancel</string>
+    <string name="Eliminar_set">Delete set</string>
+    <string name="Seguro_que_deseas_eliminar_set">Are you sure you want to delete this set?</string>
+    <string name="Nombre_del_set">Set name</string>
+    <string name="nuevo_set2">New set</string>
+    <string name="editar_set2">Edit set</string>
+    <string name="guardar">Save</string>
+    <string name="nueva_carta2">New card</string>
+    <string name="editar_carta2">Edit card</string>
+</resources>

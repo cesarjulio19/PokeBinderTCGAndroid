@@ -40,7 +40,7 @@ class CardViewModel @Inject constructor(
     val pagedCards: Flow<PagingData<CardDto>> = _setId
         .filterNotNull()
         .flatMapLatest { setId ->
-            repository.getPagedCardsBySetApi(setId)
+            repository.getPagedCardsBySet(setId)
         }
         .cachedIn(viewModelScope)
 

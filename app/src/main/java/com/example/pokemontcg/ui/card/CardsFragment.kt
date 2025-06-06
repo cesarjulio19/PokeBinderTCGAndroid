@@ -84,7 +84,7 @@ class CardsFragment : Fragment() {
             launchCamera()
         } else {
             Toast.makeText(requireContext(),
-                "Sin permiso de cámara no puedes tomar fotos",
+                getString(R.string.Sin_permiso_de_camara),
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -113,19 +113,20 @@ class CardsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // 1️⃣ Título
-        (activity as AppCompatActivity).supportActionBar?.title = "Cartas"
+        (activity as AppCompatActivity).supportActionBar?.title = getString(R.string.cartas)
 
         // Inicializa el PagingDataAdapter (hereda de PagingDataAdapter<CardDto, VH>)
         cardAdapter = CardAdapter(
             onEdit = { card -> showCardDialog(isEditing = true, existing = card) },
             onDelete = { card ->
                 AlertDialog.Builder(requireContext())
-                    .setTitle("Eliminar carta ${card.id}")
-                    .setMessage("¿Seguro que deseas eliminar «${card.name}»?")
-                    .setPositiveButton("Sí") { _, _ ->
+                    .setTitle( getString(R.string.Eliminar_carta) +
+                    " ${card.id}")
+                    .setMessage( getString(R.string.Seguro_que_deseas_eliminar_carta) + " «${card.name}»?")
+                    .setPositiveButton(getString(R.string.Sí)) { _, _ ->
                         cardViewModel.deleteCard(card.id)
                     }
-                    .setNegativeButton("Cancelar", null)
+                    .setNegativeButton(getString(R.string.cancelar), null)
                     .show()
             }
         )
@@ -141,6 +142,8 @@ class CardsFragment : Fragment() {
         spinner = view.findViewById(R.id.spinner_sets)
         setAdapter = SetSpinnerAdapter(requireContext())
         spinner.adapter = setAdapter
+        // obtenemos los Sets desde Strapi hacia Room
+        setViewModel.refresh()
 
         // Observa la lista de sets desde el ViewModel
         setViewModel.sets
@@ -155,6 +158,7 @@ class CardsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             setViewModel.sets.firstOrNull()?.firstOrNull()?.let { firstSet ->
                 selectedSetId = firstSet.id
+                cardViewModel.fetchCardsBySet(firstSet.id)
                 cardViewModel.onSetSelected(firstSet.id)
             }
         }
@@ -171,6 +175,7 @@ class CardsFragment : Fragment() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
                 val setId = sets[pos].id
                 selectedSetId = setId
+                cardViewModel.fetchCardsBySet(setId)
                 cardViewModel.onSetSelected(setId)
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -200,12 +205,12 @@ class CardsFragment : Fragment() {
             .setOnClickListener {
                 selectedSetId?.let { id ->
                     AlertDialog.Builder(requireContext())
-                        .setTitle("Eliminar set $id")
-                        .setMessage("¿Estás seguro de que deseas eliminar este set?")
-                        .setPositiveButton("Sí") { _, _ ->
+                        .setTitle(getString(R.string.Eliminar_set)+" $id")
+                        .setMessage(getString(R.string.Seguro_que_deseas_eliminar_set))
+                        .setPositiveButton(getString(R.string.Sí)) { _, _ ->
                             setViewModel.deleteSet(id)
                         }
-                        .setNegativeButton("Cancelar", null)
+                        .setNegativeButton(getString(R.string.cancelar), null)
                         .show()
                 }
             }
@@ -245,14 +250,14 @@ class CardsFragment : Fragment() {
 
     private fun showSetDialog(isEditing: Boolean, setId: Int = 0, setName: String = "") {
         val input = EditText(requireContext()).apply {
-            hint = "Nombre del set"
+            hint = getString(R.string.Nombre_del_set)
             setText(if (isEditing) setName else "")
         }
 
         AlertDialog.Builder(requireContext())
-            .setTitle(if (isEditing) "Editar set" else "Nuevo set")
+            .setTitle(if (isEditing) getString(R.string.editar_set2) else getString(R.string.nuevo_set2))
             .setView(input)
-            .setPositiveButton("Guardar") { _, _ ->
+            .setPositiveButton(getString(R.string.guardar)) { _, _ ->
                 val name = input.text.toString()
                 if (isEditing) {
                     setViewModel.updateSet(setId, name)
@@ -260,7 +265,7 @@ class CardsFragment : Fragment() {
                     setViewModel.createSet(name)
                 }
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.cancelar), null)
             .show()
     }
 
@@ -337,9 +342,9 @@ class CardsFragment : Fragment() {
         }
 
         AlertDialog.Builder(requireContext())
-            .setTitle(if (isEditing) "Editar Carta" else "Nueva Carta")
+            .setTitle(if (isEditing) getString(R.string.editar_carta2) else getString(R.string.nueva_carta2))
             .setView(dialogView)
-            .setPositiveButton("Guardar") { _, _ ->
+            .setPositiveButton(getString(R.string.guardar)) { _, _ ->
                 val name  = etName.text.toString().trim()
                 val num   = etNumber.text.toString().toIntOrNull() ?: 0
                 val type  = spinnerType.selectedItem as String
@@ -399,7 +404,7 @@ class CardsFragment : Fragment() {
                 }
 
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.cancelar), null)
             .show()
     }
 

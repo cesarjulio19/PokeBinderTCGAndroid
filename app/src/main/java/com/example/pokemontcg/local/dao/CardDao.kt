@@ -41,11 +41,6 @@ interface CardDao {
     @Delete
     suspend fun deleteCards(cards: List<CardEntity>)
 
-    @Query("""
-  SELECT * 
-    FROM cards 
-   WHERE setId = :setId 
-ORDER BY id DESC
-""")
+    @Query(" SELECT * FROM cards WHERE setId = :setId ORDER BY id DESC ")
     fun pagingSourceBySet(setId: Int): PagingSource<Int, CardEntity>
 }
