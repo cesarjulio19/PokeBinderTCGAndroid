@@ -42,4 +42,16 @@
     <string name="guardar">Save</string>
     <string name="nueva_carta2">New card</string>
     <string name="editar_carta2">Edit card</string>
+    <string name="Carta_creada">Successfully created card</string>
+    <string name="Error_crear_carta">Error creating card</string>
+    <string name="Carta_actualizada">Card updated correctly</string>
+    <string name="Error_actualizar_carta">Error updating the card</string>
+    <string name="Carta_eliminada">Successfully removed card</string>
+    <string name="Error_eliminar_carta">Error deleting card</string>
+    <string name="abrir_sobre">Open Pack</string>
+    <string name="cerrar">Close</string>
+    <string name="perfil_actualizado">Profile updated successfully</string>
+    <string name="error_perfil_actualizado">Error updating profile</string>
+    <string name="username">Username</string>
+    <string name="perfil">Profile</string>
 </resources>

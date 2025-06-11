@@ -17,7 +17,7 @@ data class PersonAttributes(
     val user: UserRelation?
 )
 
-
+//relación estructura image
 data class ImageRelation(
     val data: ImageData?
 )

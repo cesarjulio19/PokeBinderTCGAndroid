@@ -2,29 +2,11 @@ package com.example.pokemontcg.mapper
 
 import com.example.pokemontcg.api.response.person.PersonData
 import com.example.pokemontcg.api.response.person.PersonResponse
+import com.example.pokemontcg.dto.PersonDto
 import com.example.pokemontcg.local.entity.PersonEntity
 
 object PersonMapper {
-    /* fun fromResponse(item: PersonData): PersonEntity {
-        val url = item.attributes.image?.data?.attributes?.url
-        return PersonEntity(
-            id        = item.id,
-            userId    = item.attributes.user.data.id,
-            username  = item.attributes.username,
-            email     = item.attributes.email,
-            adminRole = item.attributes.adminRole,
-            imageUrl  = url
-        )
-    } */
 
-    /* fun PersonData.toEntity() = PersonEntity(
-        id        = this.id,
-        userId    = attributes.user.data.id,
-        username  = attributes.username,
-        email     = attributes.email,
-        adminRole = attributes.adminRole,
-        imageUrl  = attributes.image?.data?.attributes?.url
-    ) */
 
     fun toEntity(response: PersonData): PersonEntity {
         // Obtén los atributos anidados
@@ -44,4 +26,27 @@ object PersonMapper {
             imageUrl     = attrs.image?.data?.attributes?.url
         )
     }
+
+    fun PersonData.toDomain(): PersonDto {
+        return PersonDto(
+            id        = this.id,
+            username  = this.attributes.username,
+            imageUrl  = this.attributes.image?.data?.attributes?.url
+        )
+    }
+
+    fun PersonEntity.toDomain() = PersonDto(
+        id        = this.id,
+        username  = this.username,
+        imageUrl  = this.imageUrl
+    )
+
+    fun PersonDto.toEntity() = PersonEntity(
+        id        = this.id,
+        username  = this.username,
+        adminRole = false,
+        email = "",
+        userId = 0,
+        imageUrl  = this.imageUrl,
+    )
 }

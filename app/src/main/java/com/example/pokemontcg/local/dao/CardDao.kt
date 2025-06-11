@@ -11,21 +11,24 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CardDao {
+
+    //obtiene todas las cartas
     @Query("SELECT * FROM cards")
     fun getAllCards(): Flow<List<CardEntity>>
-
+    //inserta una lista de cartas
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCards(cards: List<CardEntity>)
 
+    //elimina todas las cartas
     @Query("DELETE FROM cards")
     suspend fun clearCards()
-
+    //obtiene carta por id
     @Query("SELECT * FROM cards WHERE id = :id")
     suspend fun getCardById(id: Int): CardEntity?
-
+    //elimina las cartas de un set
     @Query("DELETE FROM cards WHERE setId = :setId")
     suspend fun deleteCardsBySet(setId: Int)
-
+    //obtiene cartas por set
     @Query("SELECT * FROM cards WHERE setId = :setId")
     fun getCardsBySet(setId: Int): Flow<List<CardEntity>>
 

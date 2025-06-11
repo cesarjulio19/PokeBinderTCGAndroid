@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="@drawable/fondo">
+
+    <!-- Spinner para elegir el set -->
+    <Spinner
+        android:id="@+id/spinner_sets"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/spinner_bg"/>
+
+    <!-- Imagen central -->
+    <ImageView
+        android:id="@+id/iv_pack_preview"
+        android:layout_width="400dp"
+        android:layout_height="400dp"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/pokeball"
+        android:contentDescription="@string/card_image_desc"
+        android:layout_marginTop="24dp"/>
+
+    <!-- Botón Abrir sobre -->
+    <Button
+        android:id="@+id/btn_open_pack"
+        android:layout_width="200dp"
+        android:layout_height="50dp"
+        android:text="@string/abrir_sobre"
+        android:enabled="false"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"/>
+
+</LinearLayout>

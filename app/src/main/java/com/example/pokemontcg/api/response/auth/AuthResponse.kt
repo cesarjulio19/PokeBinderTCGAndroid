@@ -1,6 +1,6 @@
 package com.example.pokemontcg.api.response.auth
 
-// respuesta común
+
 data class AuthResponse(
     val jwt: String,
     val user: UserData

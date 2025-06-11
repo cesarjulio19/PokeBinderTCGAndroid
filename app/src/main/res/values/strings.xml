@@ -41,4 +41,17 @@
     <string name="guardar">Guardar</string>
     <string name="nueva_carta2">Nueva carta</string>
     <string name="editar_carta2">Editar carta</string>
+    <string name="Carta_creada">Carta creada correctamente</string>
+    <string name="Error_crear_carta">Error al crear la carta</string>
+    <string name="Carta_actualizada">Carta actualizada correctamente</string>
+    <string name="Error_actualizar_carta">Error al actualizar la carta</string>
+    <string name="Carta_eliminada">Carta eliminada correctamente</string>
+    <string name="Error_eliminar_carta">Error al eliminar la carta</string>
+    <string name="abrir_sobre">Abrir Sobre</string>
+    <string name="cerrar">Cerrar</string>
+    <string name="perfil_actualizado">Perfil actualizado correctamente</string>
+    <string name="error_perfil_actualizado">Error al actualizar perfil</string>
+    <string name="username">Username</string>
+    <string name="perfil">Perfil</string>
+
 </resources>

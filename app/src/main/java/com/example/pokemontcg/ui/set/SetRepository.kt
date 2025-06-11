@@ -20,6 +20,10 @@ class SetRepository @Inject constructor(
 ) {
     fun getAllSets(): Flow<List<SetEntity>> = setDao.getAllSets()
 
+    // devuelve la lista de IDs de sets en room
+    suspend fun getAllSetIdsOnce(): List<Int> =
+        setDao.getAllSetIdsOnce()
+
     suspend fun refreshSetsFromApi() {
         try {
             val response = api.getAllSets()

@@ -9,7 +9,6 @@ import com.example.pokemontcg.api.request.set.SetUpdateRequest
 import com.example.pokemontcg.api.response.card.UploadResponse
 import com.example.pokemontcg.api.response.set.SetItemResponse
 import com.example.pokemontcg.api.response.set.SetListResponse
-import com.example.pokemontcg.api.response.set.SetResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -24,13 +23,11 @@ import retrofit2.http.Query
 
 interface StrapiApiService {
 
-    // Cards
+    // obtiene todas las cartas
     @GET("cards?populate=*")
     suspend fun getAllCards(): Response<CardListResponse>
 
-    @GET("cards/{id}")
-    suspend fun getCardById(@Path("id") id: Int): Response<CardResponse>
-
+   // obtiene todas las cartas de un set paginadas
     @GET("cards")
     suspend fun getCardsBySetPaged(
         @Query("filters[set][id][\$eq]") setId: Int,
@@ -40,12 +37,14 @@ interface StrapiApiService {
         @Query("sort") sort: String = "id:desc"
     ): Response<CardListResponse>
 
+    //crea carta
     @POST("cards")
     suspend fun createCard(
         @Query("populate") populate: String = "*",
         @Body card: CardCreateRequest
     ): Response<CardResponse>
 
+   // edita carta
     @PUT("cards/{id}")
     suspend fun updateCard(
         @Path("id") id: Int,
@@ -53,28 +52,34 @@ interface StrapiApiService {
         @Body card: CardUpdateRequest
     ): Response<CardResponse>
 
+    //elimina carta
     @DELETE("cards/{id}")
     suspend fun deleteCard(@Path("id") id: Int): Response<Unit>
 
+    //obtiene las cartas por set
     @GET("cards")
     suspend fun getCardsBySetId(
         @Query("populate") populate: String = "*",
         @Query("filters[set][id][\$eq]") setId: Int
     ): Response<CardListResponse>
 
-    // Sets
+    // obtiene todos los sets
     @GET("sets")
     suspend fun getAllSets(): Response<SetListResponse>
 
+    //crea set
     @POST("sets")
     suspend fun createSet(@Body request: SetCreateRequest): Response<SetItemResponse>
 
+    //modifica set
     @PUT("sets/{id}")
     suspend fun updateSet(@Path("id") id: Int, @Body request: SetUpdateRequest): Response<SetItemResponse>
 
+    //elimina set
     @DELETE("sets/{id}")
     suspend fun deleteSet(@Path("id") id: Int): Response<Unit>
 
+    //sube imagen
     @Multipart
     @POST("upload")
     suspend fun uploadImage(

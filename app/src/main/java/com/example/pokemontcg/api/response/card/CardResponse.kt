@@ -36,6 +36,7 @@ data class SetAttributes(
 
 )
 
+// estructura relación image
 data class ImageRelation(
     val data: ImageData?
 )

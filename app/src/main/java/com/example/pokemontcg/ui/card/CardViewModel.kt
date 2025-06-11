@@ -1,6 +1,7 @@
 package com.example.pokemontcg.ui.card
 
 
+import androidx.annotation.StringRes
 import com.example.pokemontcg.dto.CardDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -10,9 +11,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import com.example.pokemontcg.api.request.card.CardCreateData
+import com.example.pokemontcg.R
 import com.example.pokemontcg.api.request.card.CardCreateRequest
-import com.example.pokemontcg.api.request.card.CardUpdateData
 import com.example.pokemontcg.api.request.card.CardUpdateRequest
 import okhttp3.MultipartBody
 
@@ -21,6 +21,10 @@ import okhttp3.MultipartBody
 class CardViewModel @Inject constructor(
     private val repository: CardRepository
 ) : ViewModel() {
+
+    sealed class CardUiEvent {
+        data class ShowMessage(@StringRes val resId: Int): CardUiEvent()
+    }
 
     val cards: StateFlow<List<CardDto>> = repository.getAllCards()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -33,6 +37,9 @@ class CardViewModel @Inject constructor(
 
     private val _filteredCards = MutableStateFlow<List<CardDto>>(emptyList())
     val filteredCards: StateFlow<List<CardDto>> = _filteredCards
+
+    private val _uiEvents = MutableSharedFlow<CardUiEvent>()
+    val uiEvents: SharedFlow<CardUiEvent> = _uiEvents
 
     private val _setId = MutableStateFlow<Int?>(null)
 
@@ -77,17 +84,44 @@ class CardViewModel @Inject constructor(
 
     fun createCard(request: CardCreateRequest, imagePart: MultipartBody.Part?) =
         viewModelScope.launch {
-            _isSuccess.emit(repository.createCardWithImage(request, imagePart))
+            val ok = repository.createCardWithImage(request, imagePart)
+            _isSuccess.emit(ok)
+
+            if(ok){
+                _uiEvents.emit(CardUiEvent.ShowMessage(R.string.Carta_creada))
+            } else{
+                _uiEvents.emit(CardUiEvent.ShowMessage(R.string.Error_crear_carta))
+            }
         }
 
     fun updateCard(id: Int, request: CardUpdateRequest, imagePart: MultipartBody.Part?) =
         viewModelScope.launch {
-            _isSuccess.emit(repository.updateCardWithImage(id, request, imagePart))
+            val ok = repository.updateCardWithImage(id, request, imagePart)
+            _isSuccess.emit(ok)
+            if (ok) {
+                _uiEvents.emit(CardUiEvent.ShowMessage(R.string.Carta_actualizada))
+            } else {
+                _uiEvents.emit(CardUiEvent.ShowMessage(R.string.Error_actualizar_carta))
+            }
         }
 
     fun deleteCard(id: Int) {
         viewModelScope.launch {
-            _isSuccess.emit(repository.deleteCard(id))
+            val ok = repository.deleteCard(id)
+            _isSuccess.emit(ok)
+            if (ok) {
+                _uiEvents.emit(CardUiEvent.ShowMessage(R.string.Carta_eliminada))
+            } else {
+                _uiEvents.emit(CardUiEvent.ShowMessage(R.string.Error_eliminar_carta))
+            }
         }
+    }
+
+    suspend fun getCountForSet(setId: Int): Int {
+        return repository.getCardsCountOnce(setId)
+    }
+
+    suspend fun getCardsOnceForSet(setId: Int): List<CardDto> {
+        return repository.getCardsOnceForSet(setId)
     }
 }

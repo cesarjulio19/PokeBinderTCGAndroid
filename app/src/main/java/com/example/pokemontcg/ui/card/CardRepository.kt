@@ -6,21 +6,15 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.example.pokemontcg.api.StrapiApiService
-import com.example.pokemontcg.api.request.card.CardCreateData
 import com.example.pokemontcg.api.request.card.CardCreateRequest
-import com.example.pokemontcg.api.request.card.CardUpdateData
 import com.example.pokemontcg.api.request.card.CardUpdateRequest
 import com.example.pokemontcg.dto.CardDto
 import com.example.pokemontcg.local.dao.CardDao
-import com.example.pokemontcg.local.entity.CardEntity
 import com.example.pokemontcg.mapper.CardMapper
 import androidx.paging.map
 import com.example.pokemontcg.ui.auth.ConnectivityUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import okhttp3.MultipartBody
 import javax.inject.Inject
@@ -32,55 +26,12 @@ class CardRepository @Inject constructor(
     private val cardDao: CardDao,
     @ApplicationContext private val appContext: Context
 ) {
-
+    //obtiene las cartas
     fun getAllCards(): Flow<List<CardDto>> =
         cardDao.getAllCards()
             .map { list -> list.map(CardMapper::fromEntityToDto) }
 
-
-    suspend fun syncCardsFromApi() {
-        try {
-            val resp = api.getAllCards()
-            if (resp.isSuccessful) {
-                val entities = resp.body()!!.data
-                    .map { CardMapper.fromResponseToEntity(it) }
-                cardDao.clearCards()
-                cardDao.insertCards(entities)
-            } else {
-                Log.e("CardRepo", "Error HTTP al refrescar cards: ${resp.code()}")
-            }
-        } catch (e: Exception) {
-            Log.w("CardRepo", "Sin red: uso Room cache para todas las cartas", e)
-        }
-    }
-
-    suspend fun getCardById(id: Int): CardDto? =
-        cardDao.getCardById(id)?.let(CardMapper::fromEntityToDto)
-
-    suspend fun createCard(request: CardCreateRequest): Boolean {
-        val resp = api.createCard(card = request)
-        return if (resp.isSuccessful) {
-            val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
-            cardDao.insertCards(listOf(entity))
-            true
-        } else {
-            Log.e("CardRepo", "Error HTTP createCard: ${resp.code()}")
-            false
-        }
-    }
-
-    suspend fun updateCard(id: Int, request: CardUpdateRequest): Boolean {
-        val resp = api.updateCard(id = id, card = request)
-        return if (resp.isSuccessful) {
-            val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
-            cardDao.insertCards(listOf(entity))
-            true
-        } else {
-            Log.e("CardRepo", "Error HTTP updateCard: ${resp.code()}")
-            false
-        }
-    }
-
+    //elimina una carta
     suspend fun deleteCard(id: Int): Boolean {
         val resp = api.deleteCard(id)
         return if (resp.isSuccessful) {
@@ -91,26 +42,12 @@ class CardRepository @Inject constructor(
             false
         }
     }
-
+    //obtiene cartas por set en room
     fun getCardsBySet(setId: Int): Flow<List<CardDto>> =
         cardDao.getCardsBySet(setId)
             .map { list -> list.map(CardMapper::fromEntityToDto) }
 
-   /* suspend fun syncCardsBySet(setId: Int) {
-        try {
-            val response = api.getCardsBySetId(setId = setId)
-            if (response.isSuccessful) {
-                val entities = response.body()!!.data.map { CardMapper.fromResponseToEntity(it) }
-                cardDao.deleteCardsBySetId(setId)
-                cardDao.insertCards(entities)
-            } else {
-                Log.e("CardRepo", "Error HTTP al syncCards: ${response.code()}")
-            }
-        } catch (e: Exception) {
-            Log.w("CardRepo", "No hay internet, uso cartas de Room para set $setId", e)
-        }
-    }*/
-
+    //sincroniza con strapi y carga en room
     suspend fun syncCardsBySet(setId: Int) {
         val conteoAntes = cardDao.getCardsBySetOnce(setId).size
         Log.i("CardRepo", "=== FILAS EN ROOM ANTES DE SYNC: $conteoAntes para set $setId")
@@ -162,7 +99,7 @@ class CardRepository @Inject constructor(
             Log.i("CardRepo", "=== FILAS EN ROOM DESPUÉS DE SYNC: $conteoDespues para set $setId")
         }
     }
-
+    //obtiene pagina de cartaspor set (strapi)
     fun getPagedCardsBySetApi(
         setId: Int,
         pageSize: Int = 25
@@ -182,7 +119,7 @@ class CardRepository @Inject constructor(
                 pagingData
             }
     }
-
+     //obtiene pagina de cartas por set (room)
      fun getPagedCardsBySetRoom(setId: Int, pageSize: Int = 25): Flow<PagingData<CardDto>> {
         Log.i("CardRepo", "Número de cartas en Room para set ")
         return Pager(
@@ -200,6 +137,7 @@ class CardRepository @Inject constructor(
             }
     }
 
+    //decide si usar las de strapi o room para obtener pagina de carta por set
     fun getPagedCardsBySet(setId: Int, pageSize: Int = 25): Flow<PagingData<CardDto>> {
         return if (ConnectivityUtils.isOnline(appContext)) {
             // Si hay red, uso la fuente API .
@@ -243,13 +181,13 @@ class CardRepository @Inject constructor(
             false
         }
     }
-
+    //edita una carta
     suspend fun updateCardWithImage(
         id: Int,
         request: CardUpdateRequest,
         imagePart: MultipartBody.Part?
     ): Boolean {
-        // 1) sube imagen si viene nueva y saca su id
+        // sube imagen si viene nueva y saca su id
         val imageId: Int? = imagePart?.let { part ->
             api.uploadImage(part).let { resp ->
                 if (!resp.isSuccessful || resp.body().isNullOrEmpty()) return false
@@ -257,11 +195,11 @@ class CardRepository @Inject constructor(
             }
         }
 
-        // 2) crea un nuevo CardUpdateRequest con el imageId inyectado
+        // crea un nuevo CardUpdateRequest con el imageId inyectado
         val updatedData = request.data.copy(image = imageId)
         val newReq = CardUpdateRequest(updatedData)
 
-        // 3) llama a Strapi
+        //llama a Strapi
         val resp = api.updateCard(id = id, card = newReq)
         return if (resp.isSuccessful) {
             // 4) si OK, guarda en Room
@@ -272,5 +210,16 @@ class CardRepository @Inject constructor(
             Log.e("CardRepo","Error actualizando carta ${resp.code()}")
             false
         }
+    }
+
+    // Lee de Room el listado completo
+    suspend fun getCardsOnceForSet(setId: Int): List<CardDto> {
+        return cardDao.getCardsBySetOnce(setId)
+            .map { CardMapper.fromEntityToDto(it) }
+    }
+
+    //Cuenta cuántas cartas hay en el set
+    suspend fun getCardsCountOnce(setId: Int): Int {
+        return cardDao.getCardsBySetOnce(setId).size
     }
 }

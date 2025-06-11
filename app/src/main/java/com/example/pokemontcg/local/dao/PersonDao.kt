@@ -8,9 +8,10 @@ import com.example.pokemontcg.local.entity.PersonEntity
 
 @Dao
 interface PersonDao {
+    //inserta persona
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(person: PersonEntity)
-
+    // busca por userId
     @Query("SELECT * FROM persons WHERE userId = :userId LIMIT 1")
     suspend fun findByUserId(userId: Int): PersonEntity?
 }

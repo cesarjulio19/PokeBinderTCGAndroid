@@ -1,27 +1,48 @@
 package com.example.pokemontcg
 
 import android.app.AlertDialog
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.appbar.MaterialToolbar
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import androidx.navigation.NavGraph
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.pokemontcg.ui.LocaleHelper
+import java.util.concurrent.TimeUnit
+
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        private const val REQUEST_POST_NOTIFICATIONS = 1001
+        private const val CHANNEL_ID = "sync_channel"
+        private const val CHANNEL_NAME = "Sincronización"
+
+    }
+
     @Inject
     lateinit var prefs: SharedPreferences
     private val navController by lazy { findNavController(R.id.nav_host_fragment) }
+
+
 
     override fun attachBaseContext(newBase: Context) {
         // Obtenemos SharedPreferences de forma manual; así no dependemos de Hilt en este punto
@@ -51,6 +72,15 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         val appBarConfig = AppBarConfiguration(navGraph)
         setupActionBarWithNavController(navController, appBarConfig)
+
+        // Crea canal de notificaciones (solo una vez)
+        createNotificationChannel()
+
+        // Pedir permiso NOTIFICATIONS
+        ensureNotificationPermission()
+
+        // Programar Worker periódico cada hora
+        scheduleSyncWorker()
     }
 
     // Inflamos el menú correspondiente según el estado de sesión
@@ -79,32 +109,43 @@ class MainActivity : AppCompatActivity() {
     //Procesamos los clicks sobre los ítems del menú
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            // Si el usuario pulsa “Idiomas” en el menú_logged_in
+            // Si el usuario pulsa "Idiomas" en el menú_logged_in
             R.id.action_switch_language -> {
                 showLanguageDialog()
                 true
             }
-            // Si el usuario pulsa “Cartas” en el menú_logged_in
+            // Si el usuario pulsa "Cartas" en el menú_logged_in
             R.id.action_ir_cartas -> {
                 navController.navigate(R.id.cardsFragment)
                 true
             }
-            // Si el usuario pulsa “Cerrar sesión” en menu_logged_in
+            // Si el usuario pulsa "Abrir Sobres" en el menú_logged_in
+            R.id.action_open_pack -> {
+                navController.navigate(R.id.openPackFragment)
+                true
+            }
+
+            // Si el usuario pulsa "Abrir Sobres" en el menú_logged_in
+            R.id.action_profile -> {
+                navController.navigate(R.id.profileFragment)
+                true
+            }
+            // Si el usuario pulsa "Cerrar Sesión" en menu_logged_in
             R.id.action_cerrar_sesion -> {
-                // 1) Limpiamos SharedPreferences (borramos JWT)
+                // Limpiamos SharedPreferences (borramos JWT)
                 prefs.edit().clear().apply()
-                // 2) Forzamos que el menú se vuelva a inflar en estado logged-out
+                // Forzamos que el menú se vuelva a inflar en estado logged-out
                 invalidateOptionsMenu()
-                // 3) Navegamos a LoginFragment (y vaciamos BackStack si hace falta)
+                // Navegamos a LoginFragment (y vaciamos BackStack si hace falta)
                 navController.navigate(R.id.loginFragment)
                 true
             }
-            // Si el usuario pulsa “Iniciar Sesión” en menu_logged_out
+            // Si el usuario pulsa "Iniciar Sesión" en menu_logged_out
             R.id.action_iniciar_sesion -> {
                 navController.navigate(R.id.loginFragment)
                 true
             }
-            // Si el usuario pulsa “Registrarse” en menu_logged_out
+            // Si el usuario pulsa "Registrarse" en menu_logged_out
             R.id.action_registrarse -> {
                 navController.navigate(R.id.registerFragment)
                 true
@@ -127,24 +168,63 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun updateAppLocale(language: String) {
-        // Actualiza el contexto de toda la aplicación:
-        val newContext = LocaleHelper.updateAppLocale(this, language)
-        //  Recrea la Activity para que vuelva a inflar con los nuevos strings:
-        recreate()
-    }
 
 
     private fun getSavedLanguageIndex(): Int {
         val lang = prefs.getString("app_language", "es") ?: "es"
         return if (lang == "en") 1 else 0
     }
-    private fun saveSelectedLanguage(localeCode: String) {
-        prefs.edit().putString("app_language", localeCode).apply()
-    }
+
 
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp() || super.onSupportNavigateUp()
     }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Canal para avisar cuando se complete la sincronización"
+            }
+            getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
+        }
+    }
+
+    private fun ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_POST_NOTIFICATIONS
+                )
+            }
+        }
+    }
+
+    private fun scheduleSyncWorker() {
+        // Único y cada hora
+        val workRequest = PeriodicWorkRequestBuilder<SyncStrapiWorker>(
+            30, TimeUnit.MINUTES
+        ).setConstraints(
+            Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+        ).build()
+
+        WorkManager.getInstance(this)
+            .enqueueUniquePeriodicWork(
+                "sync_strapi",
+                ExistingPeriodicWorkPolicy.KEEP,
+                workRequest
+            )
+    }
+
 
 }

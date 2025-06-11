@@ -26,7 +26,6 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -38,9 +37,9 @@ import com.example.pokemontcg.api.request.card.CardUpdateRequest
 import com.example.pokemontcg.dto.CardDto
 import com.example.pokemontcg.local.entity.SetEntity
 import com.example.pokemontcg.ui.set.SetViewModel
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -112,7 +111,7 @@ class CardsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1️⃣ Título
+        // Título
         (activity as AppCompatActivity).supportActionBar?.title = getString(R.string.cartas)
 
         // Inicializa el PagingDataAdapter (hereda de PagingDataAdapter<CardDto, VH>)
@@ -181,12 +180,6 @@ class CardsFragment : Fragment() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        /* Observa el flujo de PagingData y pásaselo al adapter
-        cardViewModel.pagedCards
-            .onEach { pagingData ->
-                cardAdapter.submitData(lifecycle, pagingData)
-            }
-            .launchIn(viewLifecycleOwner.lifecycleScope) */
 
         // Botones de set (crear, editar, borrar)
         view.findViewById<Button>(R.id.btn_new_set)
@@ -219,18 +212,6 @@ class CardsFragment : Fragment() {
         view.findViewById<Button>(R.id.btn_new_card)
             .setOnClickListener { showCardDialog(isEditing = false) }
 
-        /* Al crear/editar/borrar carta, recargar la fuente de paging
-        cardViewModel.isSuccess
-            .onEach { success ->
-                if (success && selectedSetId != null) {
-                    cardViewModel.syncCardsBySet(selectedSetId!!)
-                    cardAdapter.refresh()
-                }else if(success){
-                    cardAdapter.refresh()
-                }
-
-            }
-            .launchIn(viewLifecycleOwner.lifecycleScope)*/
 
         // Cuando recibas el resultado de creación/edición:
         cardViewModel.isSuccess
@@ -241,6 +222,20 @@ class CardsFragment : Fragment() {
                 }
             }
             .launchIn(viewLifecycleOwner.lifecycleScope)
+
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            cardViewModel.uiEvents.collect { event ->
+                when(event) {
+                    is CardViewModel.CardUiEvent.ShowMessage ->{
+                        val message = requireContext().getString(event.resId)
+                        Snackbar
+                            .make(requireView(), message, Snackbar.LENGTH_SHORT)
+                            .show()
+
+                    }
+                }
+            }
+        }
     }
 
 
@@ -301,7 +296,7 @@ class CardsFragment : Fragment() {
             }
         }
 
-        // 1) Configurar adapters de spinner
+        //Configurar adapters de spinner
         ArrayAdapter.createFromResource(requireContext(),
             R.array.card_types, android.R.layout.simple_spinner_item)
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
@@ -317,7 +312,7 @@ class CardsFragment : Fragment() {
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
             .let { spinnerSuper.adapter = it }
 
-        // 2) Si es edición, precarga valores
+        //Si es edición, precarga valores
         if (isEditing && existing != null) {
             val imageUrl = existing.image ?: existing.illustration
             if (imageUrl != null) {
@@ -419,16 +414,6 @@ class CardsFragment : Fragment() {
 
     }
 
-    /** Guarda el Bitmap en cacheDir y devuelve su Uri: */
-    private fun saveBitmapToCacheAndGetUri(bmp: Bitmap): Uri {
-        val file = File(requireContext().cacheDir, "tmp_image_${System.currentTimeMillis()}.jpg")
-        file.outputStream().use { out -> bmp.compress(Bitmap.CompressFormat.JPEG, 90, out) }
-        return FileProvider.getUriForFile(
-            requireContext(),
-            "${requireContext().packageName}.fileprovider",
-            file
-        )
-    }
 
     /**
      * Lee el contenido del URI y crea un MultipartBody.Part con clave "files"
