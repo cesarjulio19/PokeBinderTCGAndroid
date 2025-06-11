@@ -1,3 +1,6 @@
+import org.jetbrains.dokka.gradle.DokkaTask
+import org.gradle.api.tasks.Copy
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +8,15 @@ plugins {
     id("dagger.hilt.android.plugin")
 
 }
+
+apply(plugin = "org.jetbrains.dokka")
+
+
+tasks.withType<DokkaTask>().configureEach {
+    outputDirectory.set(buildDir.resolve("docs/kotlin"))
+}
+
+
 
 android {
     namespace = "com.example.pokemontcg"
@@ -97,6 +109,24 @@ dependencies {
 }
 kapt {
     correctErrorTypes = true
+}
+
+// Tarea para debug
+tasks.register<Copy>("copyDebugApk") {
+    dependsOn("assembleDebug")
+    val apkSource = layout.buildDirectory.dir("outputs/apk/debug")
+    from(apkSource)
+    include("*.apk")
+    into(layout.projectDirectory.dir("../apk"))  // ../apk desde app/
+}
+
+// Tarea para release
+tasks.register<Copy>("copyReleaseApk") {
+    dependsOn("assembleRelease")
+    val apkSource = layout.buildDirectory.dir("outputs/apk/release")
+    from(apkSource)
+    include("*.apk")
+    into(layout.projectDirectory.dir("../apk"))
 }
 
 

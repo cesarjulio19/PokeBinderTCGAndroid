@@ -35,17 +35,17 @@ class CardAdapter(
 
                 glide
                     .load(card.illustration)
-                    .error(R.drawable.pokeball)
+                    .error(R.drawable.card_pokebal)
                     .into(img)
             } else if(!card.image.isNullOrEmpty()){
 
                 glide
                     .load(card.image)
-                    .error(R.drawable.pokeball)
+                    .error(R.drawable.card_pokebal)
                     .into(img)
             }else if(card.image.isNullOrEmpty() && card.illustration.isNullOrEmpty()){
                 glide
-                    .load(R.drawable.pokeball)
+                    .load(R.drawable.card_pokebal)
                     .into(img)
 
             }

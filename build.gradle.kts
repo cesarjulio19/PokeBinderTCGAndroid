@@ -6,6 +6,7 @@ buildscript {
     }
     dependencies {
         classpath ("com.google.dagger:hilt-android-gradle-plugin:2.48")
+        classpath("org.jetbrains.dokka:dokka-gradle-plugin:1.8.10")
     }
 }
 

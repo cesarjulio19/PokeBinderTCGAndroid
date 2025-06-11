@@ -29,7 +29,7 @@ class PackAdapter : RecyclerView.Adapter<PackAdapter.VH>() {
         private val iv = view.findViewById<ImageView>(R.id.iv_card)
         fun bind(card: CardDto) {
             Glide.with(iv).load(card.image ?: card.illustration)
-                .placeholder(R.drawable.pokeball)
+                .placeholder(R.drawable.card_pokebal)
                 .into(iv)
         }
     }
