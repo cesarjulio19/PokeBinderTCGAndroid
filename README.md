@@ -91,9 +91,29 @@ En la página de cartas podrás ver las cartas de cada expansión, crear, editar
 
 <br>
 
+<h2>📖 Esquema E/R de la aplicación</h2>
+
+<br>
+
 ![perfilAndroid](https://github.com/user-attachments/assets/eb973baa-456a-4d2c-864d-534fe5207ebd)
 
 <br>
+
+![ER](https://github.com/user-attachments/assets/ced2fcdc-e616-4543-a7c0-dca71e1e4b13)
+
+<br>
+
+<h2>👨‍🏫 Diseño de la aplicación</h2>
+
+<br>
+
+<p>El diseño de la aplicación se encuentra en este link de figma: </p>
+
+<br>
+
+[Prototipo figma](https://www.figma.com/community/file/1515001997670986925)
+
+
 
 Vídeo del checkpoint del proyecto : [Checkpoint-PokéBinder TCG](https://youtu.be/stX-fsP2Mo8)
 
