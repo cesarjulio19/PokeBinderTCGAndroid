@@ -91,11 +91,11 @@ En la página de cartas podrás ver las cartas de cada expansión, crear, editar
 
 <br>
 
-<h2>📖 Esquema E/R de la aplicación</h2>
+![perfilAndroid](https://github.com/user-attachments/assets/eb973baa-456a-4d2c-864d-534fe5207ebd)
 
 <br>
 
-![perfilAndroid](https://github.com/user-attachments/assets/eb973baa-456a-4d2c-864d-534fe5207ebd)
+<h2>📖 Esquema E/R de la aplicación</h2>
 
 <br>
 
