@@ -41,10 +41,59 @@
 <p>Cuando inicias la aplicación aparecerá el formulario de Inicio de sesión donde también mediate el menu podrás ir al formulario de registro.</p>
 <p>Una vez logeado o registrado irás al apartado de cartas:</p>
 <br>
-![iniciosesionAndroid](https://github.com/user-attachments/assets/83d0e950-a032-4e9d-afca-3d539019038d)
-<br>
-![RegistroAndroid](https://github.com/user-attachments/assets/89cc1c29-1d7a-45b9-bf47-ed04a7f8f409)
 
+![iniciosesionAndroid](https://github.com/user-attachments/assets/95ce561f-0510-439c-9340-cfecb00455c8)
+
+<br>
+
+![RegistroAndroid](https://github.com/user-attachments/assets/0d8f749e-a961-4cf2-bd02-5d506f739eaf)
+
+<br>
+
+En la página de cartas podrás ver las cartas de cada expansión, crear, editar y eliminar cartas y sets y ver sus datos:
+
+<br>
+
+![cardsAndroid](https://github.com/user-attachments/assets/17e53d90-10f6-4f88-9319-3dca430d31f9)
+
+<br>
+
+![nuevacartaAndroid](https://github.com/user-attachments/assets/9e79c089-4776-4f80-8e3e-eae95cce913a)
+
+<br>
+
+![nuevoSetAndroid](https://github.com/user-attachments/assets/96c9a080-c4be-4762-bbe6-f66a80cf4cab)
+
+<br>
+
+![eliminarCartaAndroid](https://github.com/user-attachments/assets/b1f51859-fa3f-48d1-b75a-1d36d2a7ec10)
+
+<br>
+
+![eliminarSetAndroid](https://github.com/user-attachments/assets/4dd5ec60-48a4-4b54-8f08-37285cf96d2b)
+
+
+<br>
+
+<p>También podremos ir al apartado de abrir sobres, en el que podemos abrir sobre de 5 cartas de cada expansión, si la expansión que eliges no tiene 5 cartas o más no te dejará abrir sobres de esa expansión</p>
+
+<br>
+
+![abrirSobreAndroid](https://github.com/user-attachments/assets/721ef00c-c7f8-49d3-b2ea-0d104bce14ef)
+
+<br>
+
+![abrirSobre2Android](https://github.com/user-attachments/assets/2ad0839b-8c8a-4bc1-bb54-6032f4414670)
+
+<br>
+
+<p>Por último podremos ver y modificar el nombre y la imágen de nuestro perfil y al darle a cerrar sesión en el menu volveras al formulario de login</p>
+
+<br>
+
+![perfilAndroid](https://github.com/user-attachments/assets/eb973baa-456a-4d2c-864d-534fe5207ebd)
+
+<br>
 
 Vídeo del checkpoint del proyecto : [Checkpoint-PokéBinder TCG](https://youtu.be/stX-fsP2Mo8)
 
