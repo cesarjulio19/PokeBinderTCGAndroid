@@ -17,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import okhttp3.MultipartBody
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,13 +34,19 @@ class CardRepository @Inject constructor(
 
     //elimina una carta
     suspend fun deleteCard(id: Int): Boolean {
-        val resp = api.deleteCard(id)
-        return if (resp.isSuccessful) {
+        return try {
+            val resp = api.deleteCard(id)
+            if (resp.isSuccessful) {
+                cardDao.deleteCardById(id)
+            } else {
+                Log.e("CardRepo", "Error HTTP deleteCard: ${resp.code()}")
+                cardDao.deleteCardById(id)    // fallback a local
+            }
+            true
+        } catch (e: IOException) {
+            // no hay red
             cardDao.deleteCardById(id)
             true
-        } else {
-            Log.e("CardRepo", "Error HTTP deleteCard: ${resp.code()}")
-            false
         }
     }
     //obtiene cartas por set en room
@@ -158,27 +165,31 @@ class CardRepository @Inject constructor(
         request: CardCreateRequest,
         imagePart: MultipartBody.Part?
     ): Boolean {
-        // 1) sube imagen primero, si existe, y recupera su id
-        val imageId: Int? = imagePart?.let { part ->
-            val resp = api.uploadImage(part)
-            if (!resp.isSuccessful || resp.body().isNullOrEmpty()) return false
-            resp.body()!![0].id
-        }
-
-        // 2) crea un nuevo CardCreateRequest con el imageId inyectado
-        val newData = request.data.copy(image = imageId)
-        val newReq = CardCreateRequest(newData)
-
-        // 3) llama al endpoint POST /cards
-        val resp = api.createCard(card = newReq)
-        return if (resp.isSuccessful) {
-            // 4) si OK, guarda en Room
-            val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
-            cardDao.insertCards(listOf(entity))
+        return try {
+            // sube imagen si hay
+            val imageId = imagePart?.let { part ->
+                val upload = api.uploadImage(part)
+                if (!upload.isSuccessful || upload.body().isNullOrEmpty()) throw IOException()
+                upload.body()!![0].id
+            }
+            // prepara request final
+            val req2 = request.copy(data = request.data.copy(image = imageId))
+            val resp = api.createCard(card = req2)
+            if (resp.isSuccessful) {
+                val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
+                cardDao.insertCards(listOf(entity))
+            } else {
+                Log.e("CardRepo", "Error HTTP createCard: ${resp.code()}")
+                // fallback local: construye una entidad mínima a partir del request
+                val local = CardMapper.fromCreateRequestToEntity(req2)
+                cardDao.insertCards(listOf(local))
+            }
             true
-        } else {
-            Log.e("CardRepo","Error creando carta ${resp.code()}")
-            false
+        } catch (e: Exception) {
+            // offline o subida de imagen fallida
+            val local = CardMapper.fromCreateRequestToEntity(request)
+            cardDao.insertCards(listOf(local))
+            true
         }
     }
     //edita una carta
@@ -187,28 +198,29 @@ class CardRepository @Inject constructor(
         request: CardUpdateRequest,
         imagePart: MultipartBody.Part?
     ): Boolean {
-        // sube imagen si viene nueva y saca su id
-        val imageId: Int? = imagePart?.let { part ->
-            api.uploadImage(part).let { resp ->
-                if (!resp.isSuccessful || resp.body().isNullOrEmpty()) return false
-                resp.body()!![0].id
+        return try {
+            val imageId = imagePart?.let { part ->
+                val upload = api.uploadImage(part)
+                if (!upload.isSuccessful || upload.body().isNullOrEmpty()) throw IOException()
+                upload.body()!![0].id
             }
-        }
-
-        // crea un nuevo CardUpdateRequest con el imageId inyectado
-        val updatedData = request.data.copy(image = imageId)
-        val newReq = CardUpdateRequest(updatedData)
-
-        //llama a Strapi
-        val resp = api.updateCard(id = id, card = newReq)
-        return if (resp.isSuccessful) {
-            // 4) si OK, guarda en Room
-            val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
-            cardDao.insertCards(listOf(entity))
+            val req2 = request.copy(data = request.data.copy(image = imageId))
+            val resp = api.updateCard(id = id, card = req2)
+            if (resp.isSuccessful) {
+                val entity = CardMapper.fromResponseToEntity(resp.body()!!.data)
+                cardDao.insertCards(listOf(entity))
+            } else {
+                Log.e("CardRepo", "Error HTTP updateCard: ${resp.code()}")
+                // fallback local: convierte request en entidad
+                val local = CardMapper.fromUpdateRequestToEntity(id, req2)
+                cardDao.insertCards(listOf(local))
+            }
             true
-        } else {
-            Log.e("CardRepo","Error actualizando carta ${resp.code()}")
-            false
+        } catch (e: Exception) {
+            // offline
+            val local = CardMapper.fromUpdateRequestToEntity(id, request)
+            cardDao.insertCards(listOf(local))
+            true
         }
     }
 

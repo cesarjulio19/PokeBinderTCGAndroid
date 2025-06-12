@@ -16,6 +16,7 @@ import com.example.pokemontcg.mapper.PersonMapper
 import com.example.pokemontcg.mapper.PersonMapper.toEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
+import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,50 +30,62 @@ class AuthRepository @Inject constructor(
     @ApplicationContext private val ctx: Context
 ) {
     suspend fun register(data: RegisterRequest): Result<Unit> {
-        val resp = authApi.register(data)
-        if (!resp.isSuccessful) return Result.failure(Exception("HTTP ${resp.code()}"))
-        val body = resp.body()!!
-        // Guarda token
-        prefs.edit()
-            .putString("jwt", body.jwt)
-            .putInt("userId", body.user.id)
-            .apply()
-
-        // Hash de la contraseña
-        val pwHash = MessageDigest
-            .getInstance("SHA-256")
-            .digest(data.password.toByteArray())
-            .joinToString("") { "%02x".format(it) }
-
-        // Guarda en Room
-        userDao.insert(UserEntity(body.user.id, data.username, body.user.email, pwHash))
-
-        // Luego crea Person remoto y local
-        val personReq = PersonCreateRequest(
-            data = PersonCreateData(
-                user      = body.user.id,
-                adminRole = false,
-                email     = data.email,
-                username  = data.username,
-                image     = null
-            )
-        )
-        val token = prefs.getString("jwt", null) ?: ""
-        // Aquí debemos llamar al método createPerson de Strapi:
-        val respPerson = authApi.createPerson("Bearer $token", person = personReq)
-        Log.d("AuthRepo", "createPerson HTTP ${resp.code()}, ${respPerson.body()}")
-
-        if (respPerson.isSuccessful) {
-            // Si Strapi devolvió bien la nueva Person, la guardamos en Room:
-            respPerson.body()?.data?.let { personData ->
-                personDao.insert(toEntity(personData))
+        return try {
+            // Llamada normal al endpoint
+            val resp = authApi.register(data)
+            if (!resp.isSuccessful) {
+                // HTTP 4xx/5xx
+                return Result.failure(Exception("HTTP ${resp.code()}"))
             }
-        } else {
-            // Opcional: si falla crear el Person remoto, puedes devolver un error o simplemente ignorar.
-            Log.e("AuthRepo", "Error al crear Person en Strapi: código ${respPerson.code()}")
-        }
+            val body = resp.body()!!
 
-        return Result.success(Unit)
+            // Guarda token + userId
+            prefs.edit()
+                .putString("jwt", body.jwt)
+                .putInt("userId", body.user.id)
+                .apply()
+
+            // Hash de la contraseña y guardado en Room
+            val pwHash = MessageDigest
+                .getInstance("SHA-256")
+                .digest(data.password.toByteArray())
+                .joinToString("") { "%02x".format(it) }
+            userDao.insert(UserEntity(
+                id = body.user.id,
+                username   = body.user.username,
+                email      = body.user.email,
+                passwordHash = pwHash
+            ))
+
+            // Crea la Person en Strapi y en Room
+            val personReq = PersonCreateRequest(
+                data = PersonCreateData(
+                    user      = body.user.id,
+                    adminRole = false,
+                    email     = data.email,
+                    username  = data.username,
+                    image     = null
+                )
+            )
+            val token = prefs.getString("jwt","")!!
+            val respPerson = authApi.createPerson("Bearer $token", personReq)
+            if (respPerson.isSuccessful) {
+                respPerson.body()?.data?.let { pd ->
+                    personDao.insert(toEntity(pd))
+                }
+            } else {
+                Log.e("AuthRepo","Error creando Person en Strapi: ${respPerson.code()}")
+            }
+
+            Result.success(Unit)
+
+        } catch (e: SocketTimeoutException) {
+            Log.w("AuthRepo","Timeout al registrar", e)
+            Result.failure(Exception("El servidor no responde, comprueba tu conexión"))
+        } catch (e: IOException) {
+            Log.w("AuthRepo","IOException al registrar", e)
+            Result.failure(Exception("No hay conexión de red"))
+        }
     }
 
     suspend fun login(data: LoginRequest): Result<Unit> {

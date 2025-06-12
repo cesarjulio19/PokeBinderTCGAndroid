@@ -1,5 +1,6 @@
 package com.example.pokemontcg.ui.auth
 
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +17,7 @@ import com.example.pokemontcg.R
 import com.example.pokemontcg.api.request.auth.RegisterRequest
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class RegisterFragment : Fragment() {
@@ -28,6 +30,8 @@ class RegisterFragment : Fragment() {
     private lateinit var btnRegister: Button
     private lateinit var progress: ProgressBar
     private lateinit var tvToLogin: TextView
+    @Inject
+    lateinit var prefs: SharedPreferences
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -77,9 +81,20 @@ class RegisterFragment : Fragment() {
                     }
                     is AuthState.Success -> {
                         progress.visibility = View.GONE
-                        //Forzamos que MainActivity refresque el menú
+                        btnRegister.isEnabled = true
+
+                        // detecta si no hay JWT => registro OFFLINE
+                        val jwt = prefs.getString("jwt", "")
+                        if (jwt.isNullOrBlank()) {
+                            Toast
+                                .makeText(requireContext(),
+                                    "Registrado en modo offline",
+                                    Toast.LENGTH_LONG)
+                                .show()
+                        }
+
+                        // Forzar refresco de menú y navegar
                         requireActivity().invalidateOptionsMenu()
-                        //Navegamos a CardsFragment
                         findNavController().navigate(R.id.action_register_to_cards)
                     }
                     is AuthState.Error -> {

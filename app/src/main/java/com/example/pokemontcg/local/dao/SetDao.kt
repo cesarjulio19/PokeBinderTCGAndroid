@@ -17,6 +17,8 @@ interface SetDao {
    //obtiene todos los ids
     @Query("SELECT id FROM sets")
     suspend fun getAllSetIdsOnce(): List<Int>
+    @Query("SELECT MAX(id) FROM sets")
+    suspend fun getMaxId(): Int?
     //inserta set
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSet(set: SetEntity)
