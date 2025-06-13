@@ -35,7 +35,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(client: OkHttpClient): Retrofit =
         Retrofit.Builder()
-            .baseUrl("https://pokemontcg-strapi.onrender.com/api/") // https://pokemontcg-strapi.onrender.com/api/ http://10.0.2.2:1337/api/
+            .baseUrl("https://pokemontcg-strapi-service.onrender.com/api/") //https://pokemontcg-strapi-service.onrender.com/api/ http://10.0.2.2:1337/api/
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
