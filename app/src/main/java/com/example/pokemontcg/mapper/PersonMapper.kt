@@ -1,7 +1,6 @@
 package com.example.pokemontcg.mapper
 
 import com.example.pokemontcg.api.response.person.PersonData
-import com.example.pokemontcg.api.response.person.PersonResponse
 import com.example.pokemontcg.dto.PersonDto
 import com.example.pokemontcg.local.entity.PersonEntity
 
@@ -40,6 +39,8 @@ object PersonMapper {
         username  = this.username,
         imageUrl  = this.imageUrl
     )
+
+
 
     fun PersonDto.toEntity() = PersonEntity(
         id        = this.id,
