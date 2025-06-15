@@ -113,6 +113,13 @@ En la página de cartas podrás ver las cartas de cada expansión, crear, editar
 
 [Prototipo figma](https://www.figma.com/community/file/1515001997670986925)
 
+<br>
+
+<h2>▶️ Vídeo explicativo proyecto</h2>
+
+[Vídeo explicativo Android](https://youtu.be/FB6ACP40wdU)
+
+
 
 
 Vídeo del checkpoint del proyecto : [Checkpoint-PokéBinder TCG](https://youtu.be/stX-fsP2Mo8)
